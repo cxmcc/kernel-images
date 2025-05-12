@@ -1,3 +1,7 @@
+FROM ghcr.io/m1k1o/neko/chromium:latest AS neko
+FROM kernel-xorg-deps AS xorg-deps
+FROM kernel-neko-client AS neko-client
+
 FROM docker.io/ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -55,9 +59,45 @@ RUN apt-get update && \
     unzip && \
     apt-get clean
 
+# runtime
+ENV USERNAME=root
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        wget ca-certificates python2 supervisor \
+        pulseaudio dbus-x11 xserver-xorg-video-dummy \
+        libcairo2 libxcb1 libxrandr2 libxv1 libopus0 libvpx7 \
+        gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+        gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+        gstreamer1.0-pulseaudio gstreamer1.0-omx; \
+    #
+    # install libxcvt0 (not available in debian:bullseye)
+    ARCH=$(dpkg --print-architecture); \
+    wget http://ftp.de.debian.org/debian/pool/main/libx/libxcvt/libxcvt0_0.1.2-1_${ARCH}.deb; \
+    apt-get install --no-install-recommends ./libxcvt0_0.1.2-1_${ARCH}.deb; \
+    rm ./libxcvt0_0.1.2-1_${ARCH}.deb; \
+    #
+    # workaround for an X11 problem: http://blog.tigerteufel.de/?p=476
+    mkdir /tmp/.X11-unix; \
+    chmod 1777 /tmp/.X11-unix; \
+    chown $USERNAME /tmp/.X11-unix/; \
+    #
+    # make directories for neko
+    mkdir -p /etc/neko /var/www /var/log/neko \
+        /tmp/runtime-$USERNAME \
+        /home/$USERNAME/.config/pulse  \
+        /home/$USERNAME/.local/share/xorg; \
+    chmod 1777 /var/log/neko; \
+    chown $USERNAME /var/log/neko/ /tmp/runtime-$USERNAME; \
+    chown -R $USERNAME:$USERNAME /home/$USERNAME; \
+    # clean up
+    apt-get clean -y; \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/
+
 # install chromium & ncat for proxying the remote debugging port
 RUN add-apt-repository -y ppa:xtradeb/apps
 RUN apt update -y && apt install -y chromium ncat
+RUN apt install -y xclip
 
 # Install noVNC
 RUN git clone --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC && \
@@ -68,6 +108,14 @@ RUN git clone --branch v1.5.0 https://github.com/novnc/noVNC.git /opt/noVNC && \
 ENV DISPLAY_NUM=1
 ENV HEIGHT=768
 ENV WIDTH=1024
+
+COPY xorg.conf /etc/neko/xorg.conf
+COPY neko.yaml /etc/neko/neko.yaml
+COPY --from=neko /usr/bin/neko /usr/bin/neko
+COPY --from=neko-client /src/dist/ /var/www
+COPY --from=xorg-deps /usr/local/lib/xorg/modules/drivers/dummy_drv.so /usr/lib/xorg/modules/drivers/dummy_drv.so
+COPY --from=xorg-deps /usr/local/lib/xorg/modules/input/neko_drv.so /usr/lib/xorg/modules/input/neko_drv.so
+LABEL net.m1k1o.neko.api-version=3
 
 COPY image-chromium/ /
 COPY ./wrapper.sh /wrapper.sh
