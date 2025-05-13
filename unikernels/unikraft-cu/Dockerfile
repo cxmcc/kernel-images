@@ -59,7 +59,7 @@ RUN apt-get update && \
     apt-get clean
 
 # runtime
-ENV USERNAME=kernel
+ENV USERNAME=root
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -75,12 +75,6 @@ RUN set -eux; \
     wget http://ftp.de.debian.org/debian/pool/main/libx/libxcvt/libxcvt0_0.1.2-1_${ARCH}.deb; \
     apt-get install --no-install-recommends ./libxcvt0_0.1.2-1_${ARCH}.deb; \
     rm ./libxcvt0_0.1.2-1_${ARCH}.deb; \
-    #
-    # create a non-root user
-    useradd $USERNAME; \
-    adduser $USERNAME audio; \
-    adduser $USERNAME video; \
-    adduser $USERNAME pulse; \
     #
     # workaround for an X11 problem: http://blog.tigerteufel.de/?p=476
     mkdir /tmp/.X11-unix; \
@@ -113,9 +107,6 @@ ENV DISPLAY_NUM=1
 ENV HEIGHT=768
 ENV WIDTH=1024
 
-USER kernel
-WORKDIR /home/kernel
-
 COPY xorg.conf /etc/neko/xorg.conf
 COPY neko.yaml /etc/neko/neko.yaml
 COPY --from=neko /usr/bin/neko /usr/bin/neko
@@ -124,8 +115,8 @@ COPY --from=xorg-deps /usr/local/lib/xorg/modules/drivers/dummy_drv.so /usr/lib/
 COPY --from=xorg-deps /usr/local/lib/xorg/modules/input/neko_drv.so /usr/lib/xorg/modules/input/neko_drv.so
 LABEL net.m1k1o.neko.api-version=3
 
-COPY image-chromium/ /home/kernel
-COPY ./wrapper.sh /home/kernel/wrapper.sh
+COPY image-chromium/ /
+COPY ./wrapper.sh /wrapper.sh
 
-ENTRYPOINT [ "/home/kernel/wrapper.sh" ]
+ENTRYPOINT [ "/wrapper.sh" ]
 

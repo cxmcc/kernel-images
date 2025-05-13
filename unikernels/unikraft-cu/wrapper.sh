@@ -13,10 +13,8 @@ export DISPLAY=:1
 
 sleep 3
 ./mutter_startup.sh
-./tint2_startup.sh
 
 sleep 3
-./x11vnc_startup.sh
 
 # Start Chromium with display :1 and remote debugging, loading our recorder extension.
 # Use ncat to listen on 0.0.0.0:9222 since chromium does not let you listen on 0.0.0.0 anymore: https://github.com/pyppeteer/pyppeteer/pull/379#issuecomment-217029626
@@ -31,7 +29,7 @@ pid2=
 INTERNAL_PORT=9223
 CHROME_PORT=9222  # External port mapped to host
 echo "Starting Chromium on internal port $INTERNAL_PORT"
-DISPLAY=:1 chromium \
+chromium \
   --remote-debugging-port=$INTERNAL_PORT \
   --no-sandbox \
   --disable-dev-shm-usage \
@@ -47,8 +45,6 @@ ncat \
   --keep-open & pid2=$!
 
 /usr/bin/neko serve --server.static /var/www --server.bind 0.0.0.0:8080 >&2
-
-./novnc_startup.sh
 
 echo "✨ noVNC demo is ready to use!"
 
