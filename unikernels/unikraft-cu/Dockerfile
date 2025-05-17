@@ -1,5 +1,6 @@
 FROM ghcr.io/m1k1o/neko/chromium:latest AS neko
 FROM kernel-xorg-deps AS xorg-deps
+FROM kernel-neko-client AS neko-client
 
 FROM docker.io/ubuntu:22.04
 
@@ -110,7 +111,7 @@ ENV WIDTH=1024
 COPY xorg.conf /etc/neko/xorg.conf
 COPY neko.yaml /etc/neko/neko.yaml
 COPY --from=neko /usr/bin/neko /usr/bin/neko
-COPY --from=neko /var/www /var/www
+COPY --from=neko-client /src/dist/ /var/www
 COPY --from=xorg-deps /usr/local/lib/xorg/modules/drivers/dummy_drv.so /usr/lib/xorg/modules/drivers/dummy_drv.so
 COPY --from=xorg-deps /usr/local/lib/xorg/modules/input/neko_drv.so /usr/lib/xorg/modules/input/neko_drv.so
 LABEL net.m1k1o.neko.api-version=3
