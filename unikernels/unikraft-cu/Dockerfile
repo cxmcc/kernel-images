@@ -1,6 +1,6 @@
 FROM ghcr.io/m1k1o/neko/chromium:latest AS neko
-FROM kernel-xorg-deps AS xorg-deps
-FROM kernel-neko-client AS neko-client
+FROM cxmcccode/kernel-xorg-deps AS xorg-deps
+FROM cxmcccode/kernel-neko-client AS neko-client
 
 FROM docker.io/ubuntu:22.04
 
